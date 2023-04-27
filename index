@@ -14,8 +14,9 @@ function getData(){
 
   //　---- A列のURLから商品名とショップ名と値段を取得 ----
   for(let i=2;i<=lastRow;i++){
-    Utilities.sleep(5000); //連続アクセスを避ける為の遅延
+    Utilities.sleep(500); //連続アクセスを避ける為の遅延
 
+    try{
     let range = sheet.getRange(i,1); //URLのセルを取得
     let response = UrlFetchApp.fetch(range.getValue()); //URLを参照
     let content = response.getContentText("utf-8"); //コンテンツを取得
@@ -49,10 +50,15 @@ function getData(){
       body += '[/info]'
       sendMessage(body);
     }
+    }catch(error){
+      sheet.getRange(i,lastCol+1).setValue("エラー"); //値段をセルに記入
+      sheet.getRange(i,2).setValue("エラー"); //商品名をセルに記入
+      sheet.getRange(i,3).setValue("エラー"); //ショップ名をセルに記入
+      let body ='[info]';
+      body += "無効なURLが入力されました。";
+      sendMessage(body);
+    }
   } //　---- A列のURLから商品名とショップ名と値段を取得 ----
-
-
-
   body = "スクレピングを終了します";
   sendMessage(body);
 }
