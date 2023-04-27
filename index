@@ -1,0 +1,98 @@
+//-----------------------------------------------------//
+//　　　URLから初期情報を取得
+//-----------------------------------------------------//
+function getData(){
+  let body = "スクレピングを実行します";
+  sendMessage(body);
+
+
+  const sheet = SpreadsheetApp.getActiveSheet();  //スプレッドシートを定義
+  let lastRow = sheet.getLastRow(); //最後の行を取得
+  let lastCol = sheet.getLastColumn(); //最後の列を取得
+
+  getYyyymmdd(); //最後の列の次の列に日付を記入
+
+  //　---- A列のURLから商品名とショップ名と値段を取得 ----
+  for(let i=2;i<=lastRow;i++){
+    Utilities.sleep(5000); //連続アクセスを避ける為の遅延
+
+    let range = sheet.getRange(i,1); //URLのセルを取得
+    let response = UrlFetchApp.fetch(range.getValue()); //URLを参照
+    let content = response.getContentText("utf-8"); //コンテンツを取得
+
+    var price = Parser.data(content).from('<span class="elPriceNumber"  itemprop="price">').to('</span>').iterate();
+    sheet.getRange(i,lastCol+1).setValue(price); //値段をセルに記入
+
+    var productName = Parser.data(content).from('<p class="elName">').to('</p>').iterate();
+    sheet.getRange(i,2).setValue(productName); //商品名をセルに記入
+
+    var shopName = Parser.data(content).from(' data-ylk="slk:str_cat;pos:0;" data-sci-param="shp_pc_store-item_itmcat">').to('</a>').iterate();
+    sheet.getRange(i,3).setValue(shopName); //ショップ名をセルに記入
+
+    if(sheet.getRange(i,lastCol+1).getValue() == sheet.getRange(i,lastCol).getValue()){
+      // 最新の値と1つ前の値が同じ時
+      console.log("変化なし");
+    }else{
+      // 最新の値と1つ前の値が違う時
+      console.log("変化あり");
+
+      let body ='[info]';
+      body += "登録した商品価格に変化あり。";
+      body += '[hr]';
+      body += "\n";
+      body += "ショップ名："+shopName;
+      body += '[hr]';
+      body += "\n";
+      body += productName;
+      body += "\n";
+      body += "¥"+sheet.getRange(i,lastCol).getValue()+" → ¥"+sheet.getRange(i,lastCol+1).getValue();
+      body += '[/info]'
+      sendMessage(body);
+    }
+  } //　---- A列のURLから商品名とショップ名と値段を取得 ----
+
+
+
+  body = "スクレピングを終了します";
+  sendMessage(body);
+}
+
+
+
+
+//-----------------------------------------------------//
+//　　　日付をセルに追加
+//-----------------------------------------------------//
+function getYyyymmdd(){
+  const sheet = SpreadsheetApp.getActiveSheet();
+  let lastCol = sheet.getLastColumn();
+  const today = new Date();
+  const year = today.getUTCFullYear();
+  const month = today.getMonth()+1;
+  const date = today.getDate();
+  const day = today.getDay();
+  const dayArray = ["日","月","火","水","木","金","土"];
+  sheet.getRange(1,lastCol+1).setValue(year + "/" + month + "/" + date + "(" + dayArray[day] + ")");
+}
+
+
+function test(){
+  let body = "てすと";
+  testMessage(body);
+}
+
+//-----------------------------------------------------//
+//　　　CWテスト送信
+//-----------------------------------------------------//
+function sendMessage(body){
+  const cw = ChatWorkClient.factory({
+  token:'a4bf2e7c8819570b93218ebf3dda2176'
+  });
+  const groupId = '318859171';
+  cw.sendMessage(
+        {
+            room_id: groupId,
+            body: body
+        }
+    );
+}
